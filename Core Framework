@@ -1,0 +1,91 @@
+Parameters:
+   AMI:
+    Type: String
+    Description: LW custom AMI for web server
+    Default: ami-0a9d27a9f4f5c0efc
+   InstanceType:
+    Type: String
+    Description: LW test InstanceType
+    Default: t2.micro
+   KeyName:
+    Type: String
+    Description: Put ur ssh key
+
+Resources:
+   VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: '10.0.0.0/16'
+      EnableDnsSupport: 'true'
+      EnableDnsHostnames: 'true'
+      InstanceTenancy: default
+      Tags:
+      - Key: Name
+        Value: LW VPC CF
+
+   InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+      - Key: Name
+        Value: LW IgW CF
+
+   VPCGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+       VpcId: !Ref VPC
+       InternetGatewayId: !Ref InternetGateway
+
+   SubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: VPC
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: !Select  [ 0, !GetAZs ]
+      Tags:
+      - Key: Name
+        Value: mysubnetlab1
+
+   RouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId:  
+        Ref: VPC
+      Tags:
+      - Key: Name
+        Value: LW RT CF
+
+   InternetRoute:
+    Type: AWS::EC2::Route
+    DependsOn: InternetGateway
+    Properties:
+      RouteTableId:
+        Ref: RouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId:
+        Ref: InternetGateway
+
+   SubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:
+        Ref: SubnetA
+      RouteTableId:
+        Ref: RouteTable
+   
+   
+   EC2InstancebyCF: 
+    Type: AWS::EC2::Instance
+    Properties: 
+      ImageId: !Ref  AMI
+      InstanceType: !Ref InstanceType
+      AvailabilityZone: ap-south-1a
+      NetworkInterfaces: 
+      - AssociatePublicIpAddress: "true"
+        DeviceIndex: "0"
+        SubnetId: !Ref SubnetA
+      Tags:
+      - Key: Name
+        Value: LWoscf
+      KeyName: !Ref KeyName
